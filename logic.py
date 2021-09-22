@@ -5,7 +5,7 @@ import requests
 
 
 def get_group_id(text):
-    url = "https://api.rozklad.org.ua/v2/groups/?search={%27query%27:%27" + urllib.parse.quote(text[3:]) + "%27}"
+    url = "https://api.rozklad.org.ua/v2/groups/?search={%27query%27:%27" + urllib.parse.quote(text) + "%27}"
     request = requests.get(url)
 
     if request.status_code != 200:
@@ -29,16 +29,10 @@ def get_lessons_for_tomorrow(group_id):
 
 def get_lessons_for_day(group_id, day_number, day,
                         lesson_week=str(requests.get("https://api.rozklad.org.ua/v2/weeks").json()["data"])):
-    if group_id is None:
-        return "Виберіть групу: /r бс-14"
-
-    print(group_id)
-
     url = "https://api.rozklad.org.ua/v2/groups/"
 
     request_url = url + str(group_id) + "/lessons?filter={'day_number':" + str(
         day_number) + ",'lesson_week':" + lesson_week + "}"
-    print(request_url)
     request = requests.get(request_url)
     if request.status_code != 200:
         return f"{day} пар немає"
@@ -69,9 +63,6 @@ def get_lessons_for_next_week(group_id, full=False):
 
 
 def get_lessons_for_week(group_id, lesson_week, full=False):
-    if group_id is None:
-        return "Виберіть групу: /r бс-14"
-
     url = "https://api.rozklad.org.ua/v2/groups/"
     request_url = url + str(group_id) + "/lessons?filter={'lesson_week':" + str(lesson_week) + "}"
     request = requests.get(request_url)
@@ -100,9 +91,6 @@ def get_lessons_for_week(group_id, lesson_week, full=False):
 
 
 def get_teachers_name(group_id):
-    if group_id is None:
-        return "Виберіть групу: /r бс-14"
-
     url = "https://api.rozklad.org.ua/v2/groups/"
     request_url = url + str(group_id) + "/lessons?filter={'day_number':" + str(
         datetime.datetime.today().weekday() + 1) + ",'lesson_week':" + str(
@@ -118,18 +106,26 @@ def get_teachers_name(group_id):
     name = ""
 
     if current_lesson != -1:
-        for teacher in response[current_lesson]["teachers"]:
-            name += teacher["teacher_name"].replace("посада ", "").replace("викладач ", "") + "\n"
+        for lesson in response:
+            if lesson["lesson_number"] == str(current_lesson):
+                for teacher in lesson["teachers"]:
+                    name += teacher["teacher_name"].replace("посада ", "").replace("викладач ", "") + "\n"
     elif current_break != -1:
-        name += f"*Попередня ({current_break + 1}-а) пара:*"
-        for teacher in response[current_break]["teachers"]:
-            name += teacher["teacher_name"].replace("посада ", "").replace("викладач ", "") + "\n"
+        name += f"*Попередня ({current_break}-а) пара:*"
+        for lesson in response:
+            if lesson["lesson_number"] == str(current_break):
+                for teacher in lesson["teachers"]:
+                    name += teacher["teacher_name"].replace("посада ", "").replace("викладач ", "") + "\n"
 
         name += "\n"
 
         name += f"*Наступна ({current_break + 1}-а) пара:*"
-        for teacher in response[current_break + 1]["teachers"]:
-            name += teacher["teacher_name"].replace("посада ", "").replace("викладач ", "") + "\n"
+        for lesson in response:
+            if lesson["lesson_number"] == str(current_break+1):
+                for teacher in lesson["teachers"]:
+                    name += teacher["teacher_name"].replace("посада ", "").replace("викладач ", "") + "\n"
+    else:
+        return "Зараз уроку немає"
 
     return name
 
